@@ -39,7 +39,7 @@ namespace Commander.Controllers
 			{
 				return Ok(_mapper.Map<CommandReadDto>(commandItem));
 			}
-			return NotFound();            
+			return NotFound();
 		}
 
 		//POST api/commands
@@ -77,6 +77,37 @@ namespace Commander.Controllers
 		[HttpPatch("{id}")]
 		public ActionResult PartialCommandUpdate(int id, JsonPatchDocument<CommandUpdateDto> patchDoc)
 		{
+			var commandModelFromRepo = _repository.GetCommandById(id);
+			if (commandModelFromRepo == null)
+			{
+				return NotFound();
+			}
+
+			var commandToPatch = _mapper.Map<CommandUpdateDto>(commandModelFromRepo);
+			patchDoc.ApplyTo(commandToPatch, ModelState);
+			if (!TryValidateModel(commandToPatch))
+			{
+				return ValidationProblem(ModelState);
+			}
+
+			_mapper.Map(commandToPatch, commandModelFromRepo);
+			_repository.UpdateCommand(commandModelFromRepo);
+			_repository.SaveChanges();
+
+			return NoContent();
+		}
+
+		//DELETE api/commands/{id}
+		[HttpDelete("{id}")]
+		public ActionResult DeleteCommand(int id)
+		{
+			var commandModelFromRepo = _repository.GetCommandById(id);
+			if (commandModelFromRepo == null)
+			{
+				return NotFound();
+			}
+			_repository.DeleteCommand(commandModelFromRepo);
+			_repository.SaveChanges();
 
 			return NoContent();
 		}
